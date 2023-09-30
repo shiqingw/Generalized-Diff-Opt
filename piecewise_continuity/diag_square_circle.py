@@ -165,4 +165,45 @@ plt.yticks(fontsize=tickfontsize)
 plt.tight_layout()
 plt.savefig(Path.joinpath(result_dir, '00square_points_p2_grad.png'), dpi=200)
 
+# Verify the result
+p_sol = record['p_sol']
+circle_centers = record['circle_centers']
+p1_grad = record['circle_center_p1_grad']
+p2_grad = record['circle_center_p2_grad']
+circle_center_alpha_grad = np.zeros_like(record['circle_center_alpha_grad'])
 
+for i in range(len(circle_center_alpha_grad)):
+    p = p_sol[i]
+    c = circle_centers[i]
+    dFdp = 2*(p-c)
+    dFdtheta = 2*(c-p)
+    dp1dtheta = p1_grad[i]
+    dp2dtheta = p2_grad[i]
+    dpdtheta = np.array([dp1dtheta, dp2dtheta])
+    circle_center_alpha_grad[i] = np.dot(dFdp, dpdtheta) + dFdtheta
+
+# Plot the circle_center_alpha_grad
+fig = plt.figure(figsize=(8,6), dpi=200)
+ax = fig.add_subplot(111)
+ax.plot(circle_center_alpha_grad[:,0], label=r'$\frac{\partial \alpha_{\mathrm{sol}}}{\partial c_{x}}$')
+ax.plot(circle_center_alpha_grad[:,1], label=r'$\frac{\partial \alpha_{\mathrm{sol}}}{\partial c_{y}}$')
+ax.set_xlabel('Iteration', fontsize = labelsize)
+ax.set_ylabel(r'$\frac{\partial \alpha_{\mathrm{sol}}}{\partial c_{\mathrm{sol}}}$', fontsize = labelsize)
+ax.legend(loc='upper right', fontsize = labelsize)
+plt.xticks(fontsize=tickfontsize)
+plt.yticks(fontsize=tickfontsize)
+plt.tight_layout()
+plt.savefig(Path.joinpath(result_dir, '00circle_center_alpha_grad_post_calculate.png'), dpi=200)
+
+# Plot dFdP
+fig = plt.figure(figsize=(8,6), dpi=200)
+ax = fig.add_subplot(111)
+ax.plot(p_sol[:,0] - circle_centers[:,0], label=r'$p_{\mathrm{sol,x}}-c_x$')
+ax.plot(p_sol[:,1] - circle_centers[:,1], label=r'$p_{\mathrm{sol,y}}-c_y$')
+ax.set_xlabel('Iteration', fontsize = labelsize)
+ax.set_ylabel(r'$p_{\mathrm{sol}}-c$', fontsize = labelsize)
+ax.legend(loc='upper right', fontsize = labelsize)
+plt.xticks(fontsize=tickfontsize)
+plt.yticks(fontsize=tickfontsize)
+plt.tight_layout()
+plt.savefig(Path.joinpath(result_dir, '00dFdp.png'), dpi=200)

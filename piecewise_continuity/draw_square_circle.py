@@ -24,7 +24,7 @@ result_dir = Path.joinpath(Path(__file__).parent, 'square_circle')
 if not result_dir.exists():
     result_dir.mkdir()
 
-points1 = np.array([[-1,-1],[1,-1],[1,1],[-1,1]], dtype=np.float64)
+points1 = np.array([[-1,-1],[1,-1],[1,0.7],[-1,1]], dtype=np.float64)
 R = 4
 N = 100
 thetas = np.linspace(0, 0.5*np.pi, N)
