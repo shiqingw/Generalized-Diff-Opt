@@ -98,9 +98,10 @@ for ii in range(circle_centers.shape[0]):
     # print(circle_center_val.grad)
 
     # print time taken in each step
-    # print('Time taken to create A1 and b1: ', time2 - time1)
-    # print('Time taken to create A2 and b2: ', time3 - time2)
-    # print('Time taken to solve the problem: ', time4 - time3)
+    print('Time taken to create A1 and b1: ', time2 - time1)
+    print('Time taken to create A2 and b2: ', time3 - time2)
+    print('Time taken to solve the problem: ', time4 - time3)
+    print('')
 
     ############################################################################################################
     # Create plot
