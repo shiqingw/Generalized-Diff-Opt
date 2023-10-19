@@ -49,5 +49,12 @@ RUN pip install numpy==1.24.4 \
 
 RUN python -c "import julia; julia.install()"
 
+# Install Julia packages and then remove cache to reduce layer size
+RUN julia -e 'using Pkg; Pkg.add(["ReverseDiff", "ForwardDiff", "ImplicitDifferentiation"]);'
+RUN julia -e 'using Pkg; Pkg.add(["StaticArrays"]);'
+RUN julia -e 'using Pkg; Pkg.add(["SCS", "ECOS", "Ipopt"]);'
+RUN julia -e 'using Pkg; Pkg.add(["Convex", "JuMP", "DiffOpt"]);'
+RUN julia -e 'using Pkg; Pkg.add(["LinearAlgebra", "Random", "Zygote"]);'
+
 # Spin the container
 CMD ["tail", "-f", "/dev/null"]

@@ -8,8 +8,7 @@
 		"context": "..",
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile"
-	}
-
+	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
@@ -17,10 +16,26 @@
 	// "forwardPorts": [],
 
 	// Uncomment the next line to run commands after the container is created.
-	// "postCreateCommand": "cat /etc/os-release",
+	"postCreateCommand": "cat /etc/os-release",
 
 	// Configure tool-specific properties.
-	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.cpptools-themes",
+				"twxs.cmake",
+				"ms-vscode.cmake-tools",
+				"github.copilot",
+				"ms-python.python",
+				"ms-python.isort",
+				"ms-python.vscode-pylance",
+				"julialang.language-julia",
+				"colinfang.markdown-julia"
+			]
+		}
+	},
 
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "devcontainer"

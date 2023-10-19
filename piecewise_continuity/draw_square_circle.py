@@ -99,9 +99,8 @@ for ii in range(circle_centers.shape[0]):
 
     # print time taken in each step
     print('Time taken to create A1 and b1: ', time2 - time1)
-    print('Time taken to create A2 and b2: ', time3 - time2)
+    print('Time taken to create c: ', time3 - time2)
     print('Time taken to solve the problem: ', time4 - time3)
-    print('')
 
     ############################################################################################################
     # Create plot
@@ -167,7 +166,11 @@ for ii in range(circle_centers.shape[0]):
     record['alpha_sol'][ii] = alpha_sol_np
     record['p_sol'][ii] = p_sol_np
 
+    time5 = time.time()
     alpha_sol.backward(retain_graph=True)
+    time6 = time.time()
+    print('Time taken to solve the gradient: ', time6 - time5)
+    print('')
     record['square_points_alpha_grad'][ii] = to_np(pixel_coords1.grad)
     record['circle_center_alpha_grad'][ii] = to_np(circle_center_val.grad)
 
