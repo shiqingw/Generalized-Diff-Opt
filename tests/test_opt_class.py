@@ -1,7 +1,10 @@
 import cvxpy as cp
 import numpy as np
 import sympy
-from DiffOptHelper import DiffOptHelper
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from DiffOptimization.DiffOptHelper import DiffOptHelper
 from cvxpylayers.torch import CvxpyLayer
 import torch
 import time
@@ -56,3 +59,12 @@ time2 = time.time()
 print(_alpha.value, _p.value)
 print(_A1.gradient, _b1.gradient, _circle_center.gradient)
 print("Time elapsed: ", time2 - time1)
+
+###############################
+p = sympy.Symbol('p')
+alpha = ((sympy.sqrt(5+4*p)-1)/2)**2
+J_alpha = sympy.diff(alpha, p)
+H_alpha = sympy.hessian(alpha, [p])
+print(alpha.subs(p, circle_center_np[0]).evalf())
+print(J_alpha.subs(p, circle_center_np[0]).evalf())
+print(H_alpha.subs(p, circle_center_np[0]).evalf())

@@ -5,7 +5,7 @@ from sympy import lambdify, Matrix, hessian
 class TransformHelper():
     def __init__(self, states, transformed_states):
         """
-        Initialize the differentiable optimization problem
+        Initialize the differentiable optimization problem.\n
         Inputs: 
             states: list of sympy symbols
             transformed_states: list of sympy expressions that should be written using states
@@ -23,7 +23,7 @@ class TransformHelper():
 
     def get_transformed_states_from_states(self, states):
         """
-        Get transformed states from states
+        Get transformed states from states.\n
         Inputs:
             states: a numpy array
         Outputs:
@@ -33,7 +33,7 @@ class TransformHelper():
 
     def get_transformation_jacobian(self, states):
         """
-        Get the jacobian of the transformation function
+        Get the jacobian of the transformation function.\n
         Inputs:
             states: a numpy array
         Outputs:
@@ -43,7 +43,7 @@ class TransformHelper():
 
     def get_transformation_hessian(self, states):
         """
-        Get the hessian of the transformation function
+        Get the hessian of the transformation function.\n
         Inputs:
             states: a numpy array
         Outputs:
@@ -53,9 +53,9 @@ class TransformHelper():
     
     def get_backward_jacobian(self, states, external_jacobian):
         """
-        Get the jacobian w.r.t the original states form the jacobian w.r.t the transformed states.
-        This is done by chain rule:
-            J_original = J_external * J_transform
+        Get the jacobian w.r.t the original states form the jacobian w.r.t the transformed states. 
+        This is done by chain rule:\n
+            J_original = J_external * J_transform.\n
         Inputs:
             states: a numpy array
             external_jacobian: a numpy array of size external_jacobian.shape[0] x dim(transformed_states)
@@ -70,8 +70,8 @@ class TransformHelper():
     def get_backward_hessian(self, states, external_jacobian, external_hessian):
         """
         Get the hessian w.r.t the original states form the hessian w.r.t the transformed states.
-        This is done by chain rule:
-            H_original = J_transform^T * H_external * J_transform + J_external * H_transform
+        This is done by chain rule:\n
+            H_original = J_transform^T * H_external * J_transform + J_external * H_transform.\n
         Inputs:
             states: a numpy array
             external_jacobian: a numpy array of size external_jacobian.shape[0] x dim(transformed_states)
