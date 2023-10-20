@@ -1,6 +1,7 @@
 import cvxpy as cp
 import numpy as np
 import sympy
+from sympy import lambdify, Matrix, hessian, diff, Function
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -20,8 +21,9 @@ _circle_center = cp.Parameter(nv)
 
 obj = cp.Minimize(_alpha)
 
-cons = [_A1 @ _p + _b1 <= _alpha, cp.power(cp.norm(_p - _circle_center, p=2),2) <= _alpha]
-# cons = [_A1 @ _p + _b1 <= _alpha, cp.norm(_p - _circle_center, p=2) <= _alpha]
+# cons = [cp.sum_squares(_p - _circle_center) <= _alpha, _A1 @ _p + _b1 <= _alpha]
+# cons = [cp.power(cp.norm(_p - _circle_center, p=2),2) <= _alpha, _A1 @ _p + _b1 <= _alpha]
+cons = [cp.norm(_p - _circle_center, p=2) <= _alpha, _A1 @ _p + _b1 <= _alpha]
 
 problem = cp.Problem(obj, cons)
 assert problem.is_dpp()
@@ -40,11 +42,14 @@ solver_args = {"solve_method": "ECOS"}
 time1 = time.time()
 alpha_sol, p_sol = cvxpylayer(A1_val, b1_val, circle_center_val, solver_args=solver_args)
 alpha_sol.backward()
+# p_sol[1].backward()
 time2 = time.time()
 
 print(alpha_sol, p_sol)
 print(A1_val.grad, b1_val.grad, circle_center_val.grad)
 print("Time elapsed: ", time2 - time1)
+print("#############################################")
+
 
 ###############################
 _A1.value = A1_val_np
@@ -53,18 +58,33 @@ _circle_center.value = circle_center_np
 time1 = time.time()
 problem.solve(solver=cp.SCS, requires_grad=True)
 _alpha.gradient = 1
-_p.gradient = np.zeros(nv)
+_p.gradient = np.array([0,0])
 problem.backward()
 time2 = time.time()
 print(_alpha.value, _p.value)
 print(_A1.gradient, _b1.gradient, _circle_center.gradient)
 print("Time elapsed: ", time2 - time1)
+print("#############################################")
 
 ###############################
-p = sympy.Symbol('p')
-alpha = ((sympy.sqrt(5+4*p)-1)/2)**2
-J_alpha = sympy.diff(alpha, p)
-H_alpha = sympy.hessian(alpha, [p])
-print(alpha.subs(p, circle_center_np[0]).evalf())
-print(J_alpha.subs(p, circle_center_np[0]).evalf())
-print(H_alpha.subs(p, circle_center_np[0]).evalf())
+px, py, alpha, A1x, A1y, b1, cx, cy = sympy.symbols('px py alpha A1x A1y b1 cx cy', real=True) 
+cons = [sympy.sqrt((-cx + px)**2 + (-cy + py)**2), A1x*px + A1y*py + b1]
+p_vars = [px, py]
+theta_vars = [A1x, A1y, b1, cx, cy]
+diff_helper = DiffOptHelper(problem, cons, p_vars, theta_vars)
+print('Constraints in sympy:', cons)
+dual_val = np.array([problem.constraints[i].dual_value for i in range(len(problem.constraints))]).squeeze()
+alpha_val = _alpha.value
+p_val = np.array(_p.value)
+theta_val = np.array([A1_val_np[0,0], A1_val_np[0,1], b1_val_np[0], circle_center_np[0], circle_center_np[1]])
+# print('Dual values:', dual_val)
+# print('Alpha value:', alpha_val)
+# print('p value:', p_val)
+# print('theta value:', theta_val)
+time1 = time.time()
+grad_alpha, grad_p, grad_dual = diff_helper.get_gradient(alpha_val, p_val, theta_val, dual_val)
+time2 = time.time()
+print("Time elapsed: ", time2 - time1)
+print('Gradient of alpha:', grad_alpha)
+print('Gradient of p:', grad_p)
+print('Gradient of dual:', grad_dual)

@@ -16,8 +16,8 @@ cons1 = theta1*p1**2 + theta2*p2**2 + theta3*p1*p2
 fake_prob = cp.Problem(cp.Minimize(0))
 
 diff_helper = DiffOptHelper(fake_prob, [cons1], p_vars, theta_vars)
-p_val = np.array([1, 2])
-theta_val = np.array([1, 2, 3])
+p_val = np.array([1., 2.])
+theta_val = np.array([1., 2., 3.])
 time_start = time.time()
 diff_helper.constraints_dict[0]["value"](p_val, theta_val)
 diff_helper.constraints_dict[0]["dp"](p_val, theta_val)
