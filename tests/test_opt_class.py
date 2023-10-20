@@ -21,9 +21,9 @@ _circle_center = cp.Parameter(nv)
 
 obj = cp.Minimize(_alpha)
 
-# cons = [cp.sum_squares(_p - _circle_center) <= _alpha, _A1 @ _p + _b1 <= _alpha]
+cons = [cp.sum_squares(_p - _circle_center) <= _alpha, _A1 @ _p + _b1 <= _alpha]
 # cons = [cp.power(cp.norm(_p - _circle_center, p=2),2) <= _alpha, _A1 @ _p + _b1 <= _alpha]
-cons = [cp.norm(_p - _circle_center, p=2) <= _alpha, _A1 @ _p + _b1 <= _alpha]
+# cons = [cp.norm(_p - _circle_center, p=2) <= _alpha, _A1 @ _p + _b1 <= _alpha]
 
 problem = cp.Problem(obj, cons)
 assert problem.is_dpp()
@@ -68,7 +68,8 @@ print("#############################################")
 
 ###############################
 px, py, alpha, A1x, A1y, b1, cx, cy = sympy.symbols('px py alpha A1x A1y b1 cx cy', real=True) 
-cons = [sympy.sqrt((-cx + px)**2 + (-cy + py)**2), A1x*px + A1y*py + b1]
+# cons = [sympy.sqrt((-cx + px)**2 + (-cy + py)**2), A1x*px + A1y*py + b1]
+cons = [(-cx + px)**2 + (-cy + py)**2, A1x*px + A1y*py + b1]
 p_vars = [px, py]
 theta_vars = [A1x, A1y, b1, cx, cy]
 diff_helper = DiffOptHelper(problem, cons, p_vars, theta_vars)
@@ -81,6 +82,25 @@ theta_val = np.array([A1_val_np[0,0], A1_val_np[0,1], b1_val_np[0], circle_cente
 # print('Alpha value:', alpha_val)
 # print('p value:', p_val)
 # print('theta value:', theta_val)
+print("#############################################")
+time3 = time.time()
+grad_alpha, grad_p, grad_dual =  diff_helper.get_gradient_new(alpha_val, p_val, theta_val, dual_val)
+time4 = time.time()
+print("Time elapsed: ", time4 - time3)
+print('Gradient of alpha:', grad_alpha)
+print('Gradient of p:', grad_p)
+print('Gradient of dual:', grad_dual)
+
+print("#############################################")
+time3 = time.time()
+grad_alpha, grad_p, grad_dual =  diff_helper.get_gradient_new(alpha_val, p_val, theta_val, dual_val)
+time4 = time.time()
+print("Time elapsed: ", time4 - time3)
+print('Gradient of alpha:', grad_alpha)
+print('Gradient of p:', grad_p)
+print('Gradient of dual:', grad_dual)
+
+print("#############################################")
 time1 = time.time()
 grad_alpha, grad_p, grad_dual = diff_helper.get_gradient(alpha_val, p_val, theta_val, dual_val)
 time2 = time.time()

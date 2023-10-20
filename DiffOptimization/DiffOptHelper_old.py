@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 import sympy
-from sympy import lambdify, Matrix, hessian, diff, Function, zeros
+from sympy import lambdify, Matrix, hessian, diff, Function
 
 class DiffOptHelper():
     def __init__(self, cvxpy_prob, constraints_sympy, p_vars, theta_vars):
@@ -27,34 +27,6 @@ class DiffOptHelper():
         self.implicit_dual_vars = [Function("lambda_" + str(i))(*self.theta_vars) for i in range(len(self.constraints_sympy))]
         self.implicit_p_vars = [Function("p_" + str(i))(*self.theta_vars) for i in range(len(self.p_vars))]
         self.build_constraints_dict()
-        self.build_implicit_matrices()
-
-    def build_implicit_matrices(self):
-        N = zeros(len(self.p_vars)+len(self.constraints_sympy)-1, len(self.p_vars)+len(self.constraints_sympy)-1)
-        b = zeros(len(self.p_vars)+len(self.constraints_sympy)-1, len(self.theta_vars))
-        Q = zeros(len(self.p_vars), len(self.p_vars))
-        C = zeros(len(self.constraints_sympy)-1, len(self.p_vars))
-        Phi = zeros(len(self.p_vars), len(self.theta_vars))
-        Omega = zeros(len(self.constraints_sympy)-1, len(self.theta_vars))
-        Q += self.implicit_dual_vars[0] * hessian(self.constraints_sympy[0], self.p_vars)
-        Phi += - self.implicit_dual_vars[0] * Matrix([self.constraints_sympy[0]]).jacobian(self.p_vars).jacobian(self.theta_vars)
-        cons_A_dp = Matrix([self.constraints_sympy[0]]).jacobian(self.p_vars)
-        cons_A_dtheta = Matrix([self.constraints_sympy[0]]).jacobian(self.theta_vars)
-        for i in range(1, len(self.constraints_sympy)):
-            Q += self.implicit_dual_vars[i] * hessian(self.constraints_sympy[i], self.p_vars)
-            Phi += - self.implicit_dual_vars[i] * Matrix([self.constraints_sympy[i]]).jacobian(self.p_vars).jacobian(self.theta_vars)
-            C[i-1,:] = Matrix([self.constraints_sympy[i]]).jacobian(self.p_vars) - cons_A_dp
-            Omega[i-1,:] = cons_A_dtheta - Matrix([self.constraints_sympy[i]]).jacobian(self.theta_vars)
-        N[0:len(self.p_vars),0:len(self.p_vars)] = Q
-        N[len(self.p_vars):, 0:len(self.p_vars)] = C
-        N[0:len(self.p_vars), len(self.p_vars):] = C.T
-        b[0:len(self.p_vars),:] = Phi
-        b[len(self.p_vars):,:] = Omega
-        substitution_pairs = [[a, b] for a, b in zip(self.p_vars, self.implicit_p_vars)]
-        implicit_N = N.subs(substitution_pairs)
-        implicit_b = b.subs(substitution_pairs)
-        self.N_func = lambdify([self.implicit_p_vars, self.theta_vars, self.implicit_dual_vars], implicit_N, "numpy")
-        self.b_func = lambdify([self.implicit_p_vars, self.theta_vars, self.implicit_dual_vars], implicit_b, "numpy")
 
     def build_constraints_dict(self):
         """
@@ -77,41 +49,6 @@ class DiffOptHelper():
             tmp_dict["dpdtheta"] = lambdify([self.p_vars, self.theta_vars], Matrix([self.constraints_sympy[i]]).jacobian(self.p_vars).jacobian(self.theta_vars), 'numpy')
             constraints_dict[i] = tmp_dict
         self.constraints_dict = constraints_dict
-    
-    def get_gradient_new(self, alpha_val, p_val, theta_val, dual_val):
-        """
-        Get the gradient of the primal and dual variables with respect to theta.\n
-        Inputs:
-            alpha_val: a scalar
-            p_val: a numpy array of shape (dim(p_vars),)
-            theta_val: a numpy array of shape (dim(theta_vars),)
-            dual_val: a numpy array of shape (dim(dual_vars),)
-        Outputs:
-            grad_alpha: a numpy array of shape (1, dim(theta_vars))
-            grad_p: a numpy array of shape (dim(p_vars), dim(theta_vars))
-            grad_dual: a numpy array of shape (dim(dual_vars), dim(theta_vars))
-        """
-        threshhold = 1e-4
-        active_set_B = []
-        for i in range(1, len(self.constraints_sympy)):
-            if np.abs(self.constraints_dict[i]["value"](p_val, theta_val) - alpha_val) <= threshhold:
-                active_set_B.append(i)
-        active_set_B = np.array(active_set_B)
-        keep_inds = list(range(len(self.p_vars))) + [i + len(self.p_vars)-1 for i in active_set_B]
-        keep_inds = np.array(keep_inds)
-        N_total = self.N_func(p_val, theta_val, dual_val)
-        b_total = self.b_func(p_val, theta_val, dual_val)
-        N = N_total[keep_inds,:][:,keep_inds]
-        b = b_total[keep_inds,:]
-        X = np.linalg.pinv(N) @ b
-        grad_p = X[0:len(p_val), :]
-        grad_dual = np.zeros((len(dual_val), len(theta_val)))
-        grad_dual[active_set_B,:] = X[len(p_val):len(p_val)+len(active_set_B), :]
-        grad_dual[0,:] = - np.sum(grad_dual, axis=0)
-        cons_A_dp = self.constraints_dict[0]["dp"](p_val, theta_val)
-        cons_A_dtheta = self.constraints_dict[0]["dtheta"](p_val, theta_val)
-        grad_alpha = cons_A_dp @ grad_p + cons_A_dtheta
-        return grad_alpha, grad_p, grad_dual
 
     def get_gradient(self, alpha_val, p_val, theta_val, dual_val):
         """
@@ -153,6 +90,7 @@ class DiffOptHelper():
         b[0:len(p_val), :] = Phi
         b[len(p_val):len(p_val)+len(active_set_B), :] = Omega
         X = np.linalg.pinv(N) @ b
+        # X = np.linalg.solve(N, b)
         grad_p = X[0:len(p_val), :]
         grad_dual = np.zeros((len(dual_val), len(theta_val)))
         grad_dual[active_set_B,:] = X[len(p_val):len(p_val)+len(active_set_B), :]
