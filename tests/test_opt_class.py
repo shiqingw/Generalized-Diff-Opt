@@ -10,6 +10,25 @@ from cvxpylayers.torch import CvxpyLayer
 import torch
 import time
 
+def is_symmetric(matrix, tol=1e-8):
+    """
+    Check if a matrix is symmetric.
+
+    Parameters:
+        matrix (ndarray): The input matrix.
+        tol (float): The numerical tolerance for equality check.
+
+    Returns:
+        bool: True if the matrix is symmetric, False otherwise.
+    """
+
+    # Check if the matrix is square
+    if matrix.shape[0] != matrix.shape[1]:
+        return False
+
+    # Check if the matrix is equal to its transpose within the given tolerance
+    return np.allclose(matrix, matrix.T, atol=tol)
+
 nv = 2
 nc1 = 1
 _p = cp.Variable(nv)
@@ -82,29 +101,61 @@ theta_val = np.array([A1_val_np[0,0], A1_val_np[0,1], b1_val_np[0], circle_cente
 # print('Alpha value:', alpha_val)
 # print('p value:', p_val)
 # print('theta value:', theta_val)
-print("#############################################")
-time3 = time.time()
-grad_alpha, grad_p, grad_dual =  diff_helper.get_gradient_new(alpha_val, p_val, theta_val, dual_val)
-time4 = time.time()
-print("Time elapsed: ", time4 - time3)
-print('Gradient of alpha:', grad_alpha)
-print('Gradient of p:', grad_p)
-print('Gradient of dual:', grad_dual)
 
-print("#############################################")
-time3 = time.time()
-grad_alpha, grad_p, grad_dual =  diff_helper.get_gradient_new(alpha_val, p_val, theta_val, dual_val)
-time4 = time.time()
-print("Time elapsed: ", time4 - time3)
-print('Gradient of alpha:', grad_alpha)
-print('Gradient of p:', grad_p)
-print('Gradient of dual:', grad_dual)
+# print("#############################################")
+# time1 = time.time()
+# grad_alpha, grad_p, grad_dual = diff_helper.get_gradient(alpha_val, p_val, theta_val, dual_val)
+# time2 = time.time()
+# print("Time elapsed: ", time2 - time1)
+# print('Gradient of alpha:', grad_alpha)
+# print('Gradient of p:', grad_p)
+# print('Gradient of dual:', grad_dual)
 
 print("#############################################")
 time1 = time.time()
-grad_alpha, grad_p, grad_dual = diff_helper.get_gradient(alpha_val, p_val, theta_val, dual_val)
+grad_alpha, grad_p, grad_dual, hessian_alpha, hessian_p, hessian_dual = diff_helper.get_gradient_and_hessian(alpha_val, p_val, theta_val, dual_val)
 time2 = time.time()
 print("Time elapsed: ", time2 - time1)
 print('Gradient of alpha:', grad_alpha)
 print('Gradient of p:', grad_p)
 print('Gradient of dual:', grad_dual)
+
+print("#############################################")
+# Sensitivity analysis
+epsilon = 1e-2
+_A1.value = A1_val_np + epsilon
+_b1.value = b1_val_np + epsilon
+_circle_center.value = circle_center_np + epsilon
+time1 = time.time()
+problem.solve(solver=cp.SCS, requires_grad=True)
+_alpha.gradient = 1
+_p.gradient = np.array([0,0])
+problem.backward()
+time2 = time.time()
+print(_alpha.value, _p.value)
+print(_A1.gradient, _b1.gradient, _circle_center.gradient)
+print("Time elapsed: ", time2 - time1)
+
+print("#############################################")
+dual_val = np.array([problem.constraints[i].dual_value for i in range(len(problem.constraints))]).squeeze()
+alpha_val = _alpha.value
+p_val = np.array(_p.value)
+theta_val = np.array([A1_val_np[0,0], A1_val_np[0,1], b1_val_np[0], circle_center_np[0], circle_center_np[1]]) + epsilon
+time1 = time.time()
+grad_alpha_new, grad_p_new, grad_dual_new = diff_helper.get_gradient(alpha_val, p_val, theta_val, dual_val)
+time2 = time.time()
+print("Time elapsed: ", time2 - time1)
+print('Gradient of alpha:', grad_alpha_new)
+print('Gradient of p:', grad_p_new)
+print('Gradient of dual:', grad_dual_new)
+
+print("#############################################")
+grad_alpha_new_expected = grad_alpha + epsilon * np.ones((1, len(theta_val))) @ hessian_alpha 
+grad_p_new_expected = grad_p + epsilon * np.einsum('ij,ijk->ik', np.ones((2, len(theta_val))), hessian_p)
+grad_dual_new_expected = grad_dual + epsilon * np.einsum('ij,ijk->ik', np.ones((2, len(theta_val))), hessian_dual)
+print("grad alpha new expected:", grad_alpha_new_expected)
+print("grad alpha new actual:", grad_alpha_new)
+print("grad p new expected:", grad_p_new_expected)
+print("grad p new actual:", grad_p_new)
+print("grad dual new expected:", grad_dual_new_expected)
+print("grad dual new actual:", grad_dual_new)
