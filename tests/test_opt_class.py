@@ -76,13 +76,17 @@ _b1.value = b1_val_np
 _circle_center.value = circle_center_np
 time1 = time.time()
 problem.solve(solver=cp.SCS, requires_grad=True)
+time2 = time.time()
+print("Time for SCS solving: ", time2 - time1)
+
 _alpha.gradient = 1
 _p.gradient = np.array([0,0])
+time3 = time.time()
 problem.backward()
-time2 = time.time()
+time4 = time.time()
 print(_alpha.value, _p.value)
 print(_A1.gradient, _b1.gradient, _circle_center.gradient)
-print("Time elapsed: ", time2 - time1)
+print("Time for CVXPY gradient: ", time4 - time3)
 print("#############################################")
 
 ###############################
@@ -115,7 +119,7 @@ print("#############################################")
 time1 = time.time()
 grad_alpha, grad_p, grad_dual, hessian_alpha, hessian_p, hessian_dual = diff_helper.get_gradient_and_hessian(alpha_val, p_val, theta_val, dual_val)
 time2 = time.time()
-print("Time elapsed: ", time2 - time1)
+print("Time for getting gradient and hessian: ", time2 - time1)
 print('Gradient of alpha:', grad_alpha)
 print('Gradient of p:', grad_p)
 print('Gradient of dual:', grad_dual)
@@ -126,25 +130,20 @@ epsilon = 1e-2
 _A1.value = A1_val_np + epsilon
 _b1.value = b1_val_np + epsilon
 _circle_center.value = circle_center_np + epsilon
-time1 = time.time()
 problem.solve(solver=cp.SCS, requires_grad=True)
-_alpha.gradient = 1
-_p.gradient = np.array([0,0])
+_alpha.gradient = 1 # gradient of the objective w.r.t _alpha
+_p.gradient = np.array([0,0]) # gradient of the objective w.r.t _p
 problem.backward()
-time2 = time.time()
 print(_alpha.value, _p.value)
 print(_A1.gradient, _b1.gradient, _circle_center.gradient)
-print("Time elapsed: ", time2 - time1)
 
 print("#############################################")
 dual_val = np.array([problem.constraints[i].dual_value for i in range(len(problem.constraints))]).squeeze()
 alpha_val = _alpha.value
 p_val = np.array(_p.value)
 theta_val = np.array([A1_val_np[0,0], A1_val_np[0,1], b1_val_np[0], circle_center_np[0], circle_center_np[1]]) + epsilon
-time1 = time.time()
 grad_alpha_new, grad_p_new, grad_dual_new = diff_helper.get_gradient(alpha_val, p_val, theta_val, dual_val)
-time2 = time.time()
-print("Time elapsed: ", time2 - time1)
+
 print('Gradient of alpha:', grad_alpha_new)
 print('Gradient of p:', grad_p_new)
 print('Gradient of dual:', grad_dual_new)
