@@ -1,0 +1,16 @@
+{
+    "Quadrotor":{
+        "type":"Quadrotor",
+        "properties": {
+            "n_states": 6,
+            "n_controls": 2
+        },
+        "params":{
+            "mass": 0.6,
+            "inertia": 0.15,
+            "length": 0.2,
+            "gravity": 9.81, 
+            "delta_t": 0.01
+        }
+    }
+}
