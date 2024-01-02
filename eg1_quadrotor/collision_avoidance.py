@@ -34,7 +34,11 @@ if __name__ == '__main__':
     system_name = test_settings["system_name"]
     system = get_system(system_name)
 
-    states = np.zeros(system.n_states)
-    controls = np.zeros(system.n_controls)
-    print(system.drift(states, controls))
-    print(system.actuation(states, controls))
+    horizon = 10
+    dt = 0.01
+    states = np.zeros((int(horizon/dt)+1, system.n_states))
+    controls = np.zeros((int(horizon/dt), system.n_controls))
+    controls[:,0]+=10
+    controls[:,1]+=5
+    save_video_path = "{}/video.mp4".format(results_dir)
+    system.animate_robot(states, controls, dt, save_video_path)
