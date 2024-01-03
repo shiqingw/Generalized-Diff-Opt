@@ -13,6 +13,9 @@ class Quadrotor():
         """
         self.n_states = prop_dict['n_states']
         self.n_controls = prop_dict['n_controls']
+        self.u1_constraint = prop_dict['u1_constraint']
+        self.u2_constraint = prop_dict['u2_constraint']
+
         self.mass = params_dict['mass']
         self.inertia = params_dict['inertia']
         self.length = params_dict['length']
@@ -33,21 +36,28 @@ class Quadrotor():
         drift_jac = drift.jacobian([x, y, theta, vx, vy, omega])
         self.drift_jac_func = sp.lambdify((x, y, theta, vx, vy, omega), drift_jac, 'numpy')
 
-        actuation1 = sp.Matrix([-sp.sin(theta)/ self.mass,
+        actuation1 = sp.Matrix([0,
+                               0,
+                               0,
+                               -sp.sin(theta)/ self.mass,
                                sp.cos(theta)/ self.mass,
-                               self.length/self.inertia,
-                               0,
-                               0,
-                               0])
+                               self.length/self.inertia,])
     
-        actuation2 = sp.Matrix([-sp.sin(theta)/ self.mass,
+        actuation2 = sp.Matrix([0,
+                               0,
+                               0,
+                               -sp.sin(theta)/ self.mass,
                                sp.cos(theta)/ self.mass,
-                               -self.length/self.inertia,
-                               0,
-                               0,
-                               0])
+                               -self.length/self.inertia,])
         self.actuation1_func = sp.lambdify((x, y, theta, vx, vy, omega), actuation1, 'numpy')
         self.actuation2_func = sp.lambdify((x, y, theta, vx, vy, omega), actuation2, 'numpy')
+
+        full_dynamics = drift + u1*actuation1 + u2*actuation2
+        discretized_dynamics = sp.Matrix([x, y, theta, vx, vy, omega]) + self.delta_t*full_dynamics
+        linearized_A = discretized_dynamics.jacobian([x, y, theta, vx, vy, omega])
+        linearized_B = discretized_dynamics.jacobian([u1, u2])
+        self.linearized_A_func = sp.lambdify((x, y, theta, vx, vy, omega, u1, u2), linearized_A, 'numpy')
+        self.linearized_B_func = sp.lambdify((x, y, theta, vx, vy, omega, u1, u2), linearized_B, 'numpy')
 
     def drift(self, x):
         """
@@ -69,6 +79,11 @@ class Quadrotor():
         """
         return self.drift_jac_func(*x)
     
+    def get_linearization(self, x, u):
+        A = self.linearized_A_func(*x, *u)
+        B = self.linearized_B_func(*x, *u)
+        return A, B
+    
     def get_next_state(self, x, u):
         """
         Inputs:
@@ -78,6 +93,8 @@ class Quadrotor():
         Output:
         the new state of the quadrotor as a numpy array
         """
+        u[0] = np.clip(u[0], self.u1_constraint[0], self.u1_constraint[1])
+        u[1] = np.clip(u[1], self.u2_constraint[0], self.u2_constraint[1])
         dxdt = np.squeeze(self.drift(x)) + self.actuation(x) @ u
         x_next = x + self.delta_t*dxdt
         return x_next
@@ -100,7 +117,7 @@ class Quadrotor():
     
         t = np.zeros([horizon_length+1,])
         x = np.empty([horizon_length+1, self.n_states])
-        x[:,0] = x0
+        x[0,:] = x0
         u = np.zeros([horizon_length, self.n_controls])
         for i in range(horizon_length):
             u[i,:] = controller(x[i,:],i)
@@ -178,11 +195,11 @@ class Quadrotor():
             right_propeller = rot @ right_propeller + trans
 
             right_thrust = np.array([[self.length, self.length],
-                                     [0.1, 0.1+plotu[i,0]*0.04]])
+                                     [0.1, 0.1+plotu[i,0]*0.06]])
             right_thrust = rot @ right_thrust + trans
 
             left_thrust = np.array([[-self.length, -self.length],
-                                    [0.1, 0.1+plotu[i,1]*0.04]])
+                                    [0.1, 0.1+plotu[i,1]*0.06]])
             left_thrust = rot @ left_thrust + trans
 
             list_of_lines[0].set_data(main_frame[0,:], main_frame[1,:])
