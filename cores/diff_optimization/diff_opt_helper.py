@@ -213,7 +213,7 @@ class DiffOptHelper():
         hessian_dual[0,:,:] = - np.sum(hessian_dual, axis=0)
         hessian_p_val = [hess.flatten() for hess in hessian_p]
         heissian_alpha = self.alpha_dthetadtheta_func(p_val, theta_val, grad_p.flatten(), *hessian_p_val)
-        return grad_alpha, grad_p, grad_dual, heissian_alpha, hessian_p, hessian_dual
+        return grad_alpha.squeeze(), grad_p, grad_dual, heissian_alpha, hessian_p, hessian_dual
 
     @ deprecated
     def get_gradient_old(self, alpha_val, p_val, theta_val, dual_val):

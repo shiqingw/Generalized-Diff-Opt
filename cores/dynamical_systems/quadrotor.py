@@ -77,7 +77,7 @@ class Quadrotor():
         g2 = self.actuation2_func(*x)
         return np.hstack((g1, g2))
     
-    def drift_jac(self, x, u):
+    def drift_jac(self, x):
         """
         x: state vector = [x, y, theta, vx, vy omega]
         """
