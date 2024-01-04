@@ -1,8 +1,8 @@
 import sympy
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-from DiffOptimization.TransformHelper import TransformHelper
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from cores.diff_optimization.transform_helper import TransformHelper
 import numpy as np
 import time
 

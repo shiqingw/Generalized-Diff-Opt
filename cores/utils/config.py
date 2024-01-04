@@ -1,5 +1,5 @@
 import numpy as np
-# import torch
+import torch
 # import platform
 
 class Configuration(object):
@@ -11,7 +11,7 @@ class Configuration(object):
 
         # Dtype for computations
         self.np_dtype = np.float32
-        # self.pt_dtype = torch.float32
+        self.pt_dtype = torch.float32
         self.dpi = 30
         self.pic_format = 'pdf'
 

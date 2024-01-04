@@ -3,8 +3,8 @@ import numpy as np
 import sympy
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-from DiffOptimization.DiffOptHelper import DiffOptHelper
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from cores.diff_optimization.diff_opt_helper import DiffOptHelper
 from cvxpylayers.torch import CvxpyLayer
 import torch
 import time

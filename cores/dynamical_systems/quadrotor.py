@@ -3,7 +3,7 @@ import sympy as sp
 import matplotlib.pyplot as plt
 import matplotlib as mp
 import matplotlib.animation as animation
-import IPython
+from matplotlib.patches import Ellipse
 
 
 class Quadrotor():
@@ -21,6 +21,10 @@ class Quadrotor():
         self.length = params_dict['length']
         self.gravity = params_dict['gravity']
         self.delta_t = params_dict['delta_t']
+
+        self.bounding_shape_config = {'shape': 'ellipse',
+                                      'semi_major_axis': 1.5*self.length,
+                                      'semi_minor_axis': 0.75*self.length}
 
         x, y, theta, vx, vy, omega = sp.symbols('x y theta v_x v_y omega')
         u1, u2 = sp.symbols('u_1 u_2')
@@ -129,7 +133,7 @@ class Quadrotor():
             t[i+1] = t[i] + self.delta_t
         return t, x, u
     
-    def animate_robot(self, x, u, dt, save_video_path):
+    def animate_robot(self, x, u, dt, save_video_path, plot_bounding_ellipse=True, plot_traj=True, obstacles=None):
         """
         This function makes an animation showing the behavior of the quadrotor
         takes as input the result of a simulation (with dt=0.01s)
@@ -157,21 +161,37 @@ class Quadrotor():
 
         #create the robot
         # the main frame
-        line, = ax.plot([], [], 'k', lw=6)
+        line, = ax.plot([], [], 'k', lw=6, solid_capstyle='butt', zorder=2.1)
         list_of_lines.append(line)
         # the left propeller
-        line, = ax.plot([], [], 'b', lw=4)
+        line, = ax.plot([], [], 'b', lw=4, solid_capstyle='butt', zorder=2.1)
         list_of_lines.append(line)
         # the right propeller
-        line, = ax.plot([], [], 'b', lw=4)
+        line, = ax.plot([], [], 'b', lw=4, solid_capstyle='butt', zorder=2.1)
         list_of_lines.append(line)
         # the left thrust
-        line, = ax.plot([], [], 'r', lw=1)
+        line, = ax.plot([], [], 'r', lw=1, solid_capstyle='butt', zorder=2.1)
         list_of_lines.append(line)
         # the right thrust
-        line, = ax.plot([], [], 'r', lw=1)
+        line, = ax.plot([], [], 'r', lw=1, solid_capstyle='butt', zorder=2.1)
         list_of_lines.append(line)
 
+        if plot_bounding_ellipse:
+            # Create the bounding ellipse
+            ellipse_width = 2 * self.bounding_shape_config['semi_major_axis']  # Modify the size as needed
+            ellipse_height = 2 * self.bounding_shape_config['semi_minor_axis'] # Modify the size as needed
+            ellipse = Ellipse((0, 0), ellipse_width, ellipse_height, angle=0, fill=False, linestyle='--', linewidth=1, zorder=2.1)
+            ax.add_patch(ellipse)
+        
+        if plot_traj:
+            # Initialize the trajectory line
+            trajectory_line, = ax.plot([], [], 'g', lw=1.5, zorder=2)
+            trajectory_data = []
+
+        if obstacles is not None:
+            for obstacle in obstacles:
+                ax.add_patch(obstacle)
+            
         def _animate(i):
             for l in list_of_lines: #reset all lines
                 l.set_data([],[])
@@ -183,23 +203,23 @@ class Quadrotor():
             rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
             main_frame = np.array([[-self.length, self.length],
-                                   [0,0]])
+                                   [-0.05,-0.05]])
             main_frame = rot @ main_frame + trans 
 
-            left_propeller = np.array([[-1.3 * self.length, -0.7*self.length],
-                                       [0.1,0.1]])
+            left_propeller = np.array([[-1.3 * self.length, -0.5*self.length],
+                                       [0.05,0.05]])
             left_propeller = rot @ left_propeller + trans
 
-            right_propeller = np.array([[1.3 * self.length, 0.7*self.length],
-                                        [0.1,0.1]])
+            right_propeller = np.array([[1.3 * self.length, 0.5*self.length],
+                                        [0.05,0.05]])
             right_propeller = rot @ right_propeller + trans
 
             right_thrust = np.array([[self.length, self.length],
-                                     [0.1, 0.1+plotu[i,0]*0.06]])
+                                     [0.05, 0.05+plotu[i,0]*0.06]])
             right_thrust = rot @ right_thrust + trans
 
             left_thrust = np.array([[-self.length, -self.length],
-                                    [0.1, 0.1+plotu[i,1]*0.06]])
+                                    [0.05, 0.05+plotu[i,1]*0.06]])
             left_thrust = rot @ left_thrust + trans
 
             list_of_lines[0].set_data(main_frame[0,:], main_frame[1,:])
@@ -208,7 +228,27 @@ class Quadrotor():
             list_of_lines[3].set_data(left_thrust[0,:], left_thrust[1,:])
             list_of_lines[4].set_data(right_thrust[0,:], right_thrust[1,:])
 
-            return list_of_lines
+            all_artists = list_of_lines
+
+            if plot_bounding_ellipse:
+                # Update the ellipse
+                x = plotx[i, 0]
+                y = plotx[i, 1]
+                theta = np.degrees(plotx[i, 2])  # Convert to degrees if necessary
+                ellipse.set_center((x, y))
+                ellipse.angle = theta
+                all_artists = all_artists + [ellipse]
+            
+            if plot_traj:
+                # Update the trajectory
+                trajectory_data.append((plotx[i, 0], plotx[i, 1]))
+                trajectory_line.set_data(*zip(*trajectory_data))
+                all_artists = all_artists + [trajectory_line]
+            
+            if obstacles is not None:
+                all_artists = all_artists + obstacles
+
+            return all_artists
 
         def _init():
             return _animate(0)

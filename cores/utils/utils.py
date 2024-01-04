@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import proxsuite
 
 def seed_everything(seed: int = 0):
     np.random.seed(seed)
@@ -72,7 +73,7 @@ def solve_infinite_LQR(A, B, Q, R):
         P = Q + A.T @ P @ A + A.T @ P @ B @ K
     return K
 
-def solve_LQR_trajectory(A_list, B_list, Q_list, R_list, x_bar, N):
+def solve_LQR_tracking(A_list, B_list, Q_list, R_list, x_bar, N):
     '''
     A_list, B_list, Q_list and R_list are the matrices defining the OC problem
     x_bar is the trajectory of desired states of size dim(x) x (N+1)
@@ -82,10 +83,10 @@ def solve_LQR_trajectory(A_list, B_list, Q_list, R_list, x_bar, N):
     '''
     Q = Q_list[-1]
     P = Q
-    q = - np.dot(Q, x_bar[-1,:])
+    q = - Q @ x_bar[-1,:]
     p = q
-    K_gains = []
-    k_feedforward = []
+    K_gains = np.empty((N, R_list[0].shape[0], Q_list[0].shape[0]))
+    k_feedforward = np.empty((N, R_list[0].shape[0]))
     for i in range(N):
         A = A_list[N-1-i]
         B = B_list[N-1-i]
@@ -98,7 +99,19 @@ def solve_LQR_trajectory(A_list, B_list, Q_list, R_list, x_bar, N):
         q = - Q @ x_bar[N-1-i, :]
         p = q + A.T @ p + A.T @ P @ B @ k
         P = Q + A.T @ P @ A + A.T @ P @ B @ K
-        k_feedforward = [k] + k_feedforward
-        K_gains = [K] + K_gains
+        k_feedforward[N-1-i] = k
+        K_gains[N-1-i] = K
 
     return K_gains, k_feedforward
+
+def init_prosuite_qp(n_v, n_eq, n_in):
+    qp = proxsuite.proxqp.dense.QP(n_v, n_eq, n_in)
+    # Randomly initialize the QP
+    qp.init(np.eye(n_v), None, None, None, None, None, None)
+    qp.settings.eps_abs = 1.0e-6
+    qp.settings.max_iter = 20
+    qp.settings.initial_guess = (
+            proxsuite.proxqp.InitialGuess.WARM_START_WITH_PREVIOUS_RESULT
+        )
+    qp.solve()
+    return qp

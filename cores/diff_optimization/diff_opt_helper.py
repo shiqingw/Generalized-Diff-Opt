@@ -13,23 +13,19 @@ def deprecated(func):
     return wrapper
 
 class DiffOptHelper():
-    def __init__(self, cvxpy_prob, constraints_sympy, p_vars, theta_vars):
+    def __init__(self, constraints_sympy, p_vars, theta_vars):
         """
         Initialize the DiffOptHelper.\n
         Inputs:
-            cvxpy_prob: a cvxpy problem
             constraints_sympy: a list of sympy expressions corresponding to the constraints of cvxpy_prob.
                             They should be written using primal_vars and opt_params.
             p_vars: a list of sympy symbols corresponding to the p variables of cvxpy_prob
                         !!DO NOT include the alpha variable!!
             theta_vars: a list of sympy symbols corresponding to the external parameters of cvxpy_prob
         """
-        if not isinstance(cvxpy_prob, cp.Problem):
-            raise TypeError("cvxpy_prob must be a cvxpy problem")
         if not isinstance(constraints_sympy, list) or not isinstance(constraints_sympy[0], sympy.Expr):
             raise TypeError("constraints_sympy must be a list of sympy expressions \
                             corresponding to the constraints of cvxpy_prob")
-        self.problem = cvxpy_prob
         self.constraints_sympy = constraints_sympy
         self.p_vars = p_vars
         self.theta_vars = theta_vars

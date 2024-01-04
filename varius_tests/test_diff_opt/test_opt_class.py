@@ -4,8 +4,8 @@ import sympy
 from sympy import lambdify, Matrix, hessian, diff, Function
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-from DiffOptimization.DiffOptHelper import DiffOptHelper
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from cores.diff_optimization.diff_opt_helper import DiffOptHelper
 from cvxpylayers.torch import CvxpyLayer
 import torch
 import time
@@ -95,7 +95,7 @@ px, py, alpha, A1x, A1y, b1, cx, cy = sympy.symbols('px py alpha A1x A1y b1 cx c
 cons = [(-cx + px)**2 + (-cy + py)**2, A1x*px + A1y*py + b1]
 p_vars = [px, py]
 theta_vars = [A1x, A1y, b1, cx, cy]
-diff_helper = DiffOptHelper(problem, cons, p_vars, theta_vars)
+diff_helper = DiffOptHelper(cons, p_vars, theta_vars)
 print('Constraints in sympy:', cons)
 dual_val = np.array([problem.constraints[i].dual_value for i in range(len(problem.constraints))]).squeeze()
 alpha_val = _alpha.value
