@@ -1,0 +1,27 @@
+{
+    "system_name": "Quadrotor",
+    "seed": 0,
+
+    "obstacle_config":{
+        "rec_height": 2,
+        "rec_width": 2,
+        "rec_left_bottom": [-1.0, -1.0],
+        "rec_rotation_point": "center",
+        "rec_angle_degree": 0.0,
+        "kappa": 5,
+        "ball_radius": 1.1,
+        "ball_position": [0.0, 0.0]
+    },
+
+    "cvxpy_config":{
+        "solver": "ECOS",
+        "x_max": 100
+    },
+
+    "CBF_config":{
+        "active": 1,
+        "alpha0": 1.0,
+        "gamma1": 2.0,
+        "gamma2": 2.0
+    }
+}

@@ -8,18 +8,19 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 import matplotlib.pyplot as plt
 import cvxpy as cp
-from matplotlib.patches import Circle
+import matplotlib.patches as mp
 import time
 import sympy as sp
 
 from cores.utils.config import Configuration
 from cores.dynamical_systems.create_system import get_system
 from cores.utils.utils import seed_everything, solve_LQR_tracking, save_dict, load_dict, init_prosuite_qp
+from cores.utils.utils import points2d_to_ineq
 from cores.diff_optimization.diff_opt_helper import DiffOptHelper
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--exp_num', default=2, type=int, help='test case number')
+    parser.add_argument('--exp_num', default=3, type=int, help='test case number')
     args = parser.parse_args()
 
     # Create result directory
@@ -81,9 +82,25 @@ if __name__ == '__main__':
     # Obstacles
     obstacle_config = test_settings["obstacle_config"]
     obstacles = []
-    circle = Circle(obstacle_config["ball_position"], obstacle_config["ball_radius"], 
-                    facecolor="tab:blue", alpha=1, edgecolor="black", linewidth=1, zorder=1.8)
-    obstacles.append(circle)
+    anchor_point = obstacle_config["rec_left_bottom"]
+    width = obstacle_config["rec_width"]
+    height = obstacle_config["rec_height"]
+    angle = obstacle_config["rec_angle_degree"]
+    square = mp.Rectangle(xy=anchor_point, width=width, height=height, angle=angle,
+                          rotation_point=obstacle_config["rec_rotation_point"],
+                          facecolor="tab:blue", alpha=1, edgecolor="black", linewidth=1, zorder=1.8)
+    obstacles.append(square)
+    corners = np.array([[anchor_point[0], anchor_point[1]],
+                        [anchor_point[0], anchor_point[1]+height],
+                        [anchor_point[0]+width, anchor_point[1]+height],
+                        [anchor_point[0]+width, anchor_point[1]]])
+    rotation_point = np.mean(corners, axis=0)
+    rotation_matrix = np.array([[np.cos(angle/180*np.pi), -np.sin(angle/180*np.pi)],
+                                [np.sin(angle/180*np.pi), np.cos(angle/180*np.pi)]])
+    corners = (corners - rotation_point) @ rotation_matrix.T + rotation_point
+    A_obs_np, b_obs_np = points2d_to_ineq(corners)
+    kappa_obs = obstacle_config["kappa"]
+    n_cons_obs = A_obs_np.shape[0]
 
     # Bounding shapes
     ellipse_coef_sqrt_np = np.array([1.0/system.bounding_shape_config["semi_major_axis"], 
@@ -97,10 +114,10 @@ if __name__ == '__main__':
     _ellipse_Q_sqrt = cp.Parameter((2,2))
     _ellipse_b = cp.Parameter(2)
     _ellipse_c = cp.Parameter()
-    ball_center_np = np.array(obstacle_config["ball_position"])
-    ball_radius_np = obstacle_config["ball_radius"]
     obj = cp.Minimize(_alpha)
-    cons = [cp.sum_squares(_p - ball_center_np)/ball_radius_np**2 <= _alpha,
+    # cons = [cp.log_sum_exp(kappa_obs*(A_obs_np @ _p + b_obs_np)) - np.log(n_cons_obs) + 1<= _alpha,
+    #         cp.sum_squares(_ellipse_Q_sqrt @ _p) + _ellipse_b.T @ _p + _ellipse_c <= _alpha]
+    cons = [cp.sum(cp.exp(kappa_obs*(A_obs_np @ _p + b_obs_np))/n_cons_obs)<= _alpha,
             cp.sum_squares(_ellipse_Q_sqrt @ _p) + _ellipse_b.T @ _p + _ellipse_c <= _alpha]
     problem = cp.Problem(obj, cons)
     assert problem.is_dcp()
@@ -112,12 +129,14 @@ if __name__ == '__main__':
     p_vars = [px, py]
     theta_vars = [cx, cy, theta]
     p = sp.Matrix(p_vars)
-    ball_center_tmp = ball_center_np[:, np.newaxis]
-    con1 = (p - ball_center_tmp).T @ (p - ball_center_tmp)/ball_radius_np**2
+    exps = [sp.exp(kappa_obs*(A_obs_np[i,0] * px + A_obs_np[i,1] * py + b_obs_np[i])) for i in range(n_cons_obs)]
+    con1 = 0
+    for exp in exps: con1 += exp
+    con1 = con1/n_cons_obs
     R_b_to_w = sp.Matrix([[sp.cos(theta), -sp.sin(theta)],
                             [sp.sin(theta), sp.cos(theta)]])
     con2 = (p-sp.Matrix([cx, cy])).T @ R_b_to_w @ ellipse_coef_sqrt_np.T @ ellipse_coef_sqrt_np @ R_b_to_w.T @ (p-sp.Matrix([cx, cy])) 
-    cons = [sp.simplify(con1)[0,0], sp.simplify(con2)[0,0]]
+    cons = [con1, sp.simplify(con2)[0,0]]
     diff_helper = DiffOptHelper(cons, p_vars, theta_vars)
 
     # Define proxuite problem

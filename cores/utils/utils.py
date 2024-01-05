@@ -115,3 +115,19 @@ def init_prosuite_qp(n_v, n_eq, n_in):
         )
     qp.solve()
     return qp
+
+def points2d_to_ineq(corners):
+    """
+    corners: np.array of shape (n, 2), arranged in CLOCKWISE order
+    """
+    n = corners.shape[0]
+    A = np.empty((n, 2))
+    b = np.empty(n)
+    for i in range(n):
+        A[i, 0] = - corners[(i+1)%n, 1] + corners[i, 1]
+        A[i, 1] = - corners[i, 0] + corners[(i+1)%n, 0]
+        b[i] = -corners[i, 1]*corners[(i+1)%n, 0] + corners[(i+1)%n, 1]*corners[i, 0]
+    norm_A = np.linalg.norm(A, axis=1)
+    A = A / norm_A[:, None]
+    b = b / norm_A
+    return A, b

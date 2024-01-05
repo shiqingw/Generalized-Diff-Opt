@@ -1,7 +1,6 @@
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
-import matplotlib as mp
 import matplotlib.animation as animation
 from matplotlib.patches import Ellipse
 
